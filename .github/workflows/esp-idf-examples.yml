@@ -14,15 +14,22 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: 'recursive' # 关键修改：自动拉取子模块，避免找不到依赖
 
       - name: Build with ESP-IDF
         uses: espressif/esp-idf-ci-action@v1
         with:
-          esp_idf_version: v6.1
+          esp_idf_version: v6.1 # 如果报错找不到版本，可以尝试改成 v5.5 或 v5.4.2
           target: esp32p4
           path: ${{ github.event.inputs.example_path }}
           command: |
-            export SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.esp32p4;../../../config/esp32p4_rev3_x.defaults"
+            # 动态判断配置文件是否存在，防止因为找不到文件而报错
+            default_files="sdkconfig.defaults"
+            if [ -f "sdkconfig.defaults.esp32p4" ]; then
+              default_files="${default_files};sdkconfig.defaults.esp32p4"
+            fi
+            export SDKCONFIG_DEFAULTS="${default_files};../../../config/esp32p4_rev3_x.defaults"
             idf.py set-target esp32p4 build
 
       - name: Upload Firmware
